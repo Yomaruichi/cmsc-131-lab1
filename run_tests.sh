@@ -2,14 +2,14 @@
 #
 # renpkt correctness gate. It runs two passes.
 #
-# Pass 1, decode. Every header listed in tests/manifest.txt goes through
-# --decode. The output is captured, the program's status is read, and the
-# output is compared against tests/expected/. The comparison strips trailing
-# carriage returns, for the reason Block 1 explained.
+# Pass 1, decode. The script runs every header listed in tests/manifest.txt
+# through --decode. It captures the output, reads the program's status, and
+# compares the output against tests/expected/. The comparison strips
+# trailing carriage returns, for the reason Block 1 explained.
 #
 # Pass 2, contract. ./contract_test decodes and re-encodes every header the
-# manifest marks valid, checks the checksum vector that needs two carry
-# folds, and checks the register discipline of all three routines. That
+# manifest marks valid. It checks the checksum vector that needs two carry
+# folds. It checks the register discipline of all three routines. That
 # pass catches what the output comparison cannot see: a lost field on the
 # encode path, a truncated fold, and a clobbered callee-saved register.
 #
@@ -50,8 +50,8 @@ if [ ! -f "$manifest" ]; then
     exit 1
 fi
 
-# Every .bin must be listed. A header dropped into tests/ without a manifest
-# line and an expected file would otherwise be skipped in silence.
+# Every .bin must be listed. The gate would otherwise skip, in silence, a
+# header dropped into tests/ without a manifest line and an expected file.
 for header in tests/*.bin; do
     name="$(basename "$header" .bin)"
     if ! grep -qE "^$name[[:space:]]+(valid|invalid)[[:space:]]*$" "$manifest"; then

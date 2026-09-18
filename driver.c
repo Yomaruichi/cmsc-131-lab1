@@ -8,21 +8,21 @@
  * struct it fills are the contract. Read this file before writing
  * assembly.
  *
- * The three routines you implement are declared at the bottom, with the
- * struct they share. Everything else in here is the part the activity is
- * not about.
+ * The declarations of the three routines you implement follow the struct
+ * they share, below the layout comment. Everything else in here is the
+ * part the activity is not about.
  *
  * The activity covers one 20-byte IPv4 base header with an IHL of 5. The
  * encoder writes that header and no other. IPv4 options are outside the
- * activity, so no option bytes are parsed or produced.
+ * activity, so the decoder parses no option bytes and the encoder writes
+ * none.
  *
- * Every numeric option is checked against the width of its field, so a
- * value that cannot fit is refused at the command line instead of being
- * silently truncated by the assembler's masks. Two options are checked
- * against the standard as well as the width. The total length must be at
- * least 20, because it counts the header itself. The flags field keeps its
- * top bit zero, because RFC 791 reserves that bit, so --flags accepts 0
- * through 3 and --df and --mf set the two bits that exist.
+ * The driver checks every numeric option against the width of its field.
+ * It refuses a value that cannot fit at the command line. The assembler's
+ * masks would truncate it in silence. The driver also checks two options
+ * against the standard. The total length must be at least 20, because it
+ * counts the header itself. RFC 791 reserves the top flag bit, so --flags
+ * accepts 0 through 3. --df and --mf set the two bits that exist.
  */
 
 #include <stdio.h>
@@ -53,8 +53,8 @@
 /* The struct below is what decode_header fills and encode_header     */
 /* reads. Its layout is deliberate. Every member is an unsigned int,  */
 /* so the assembly can store and load them with plain 32-bit moves.   */
-/* The two addresses are four octets each. They are stored as eight   */
-/* separate bytes in the struct, so the assembly never has to form a  */
+/* The two addresses are four octets each. The struct holds them as   */
+/* eight separate bytes, so the assembly never has to form a          */
 /* multi-byte number out of them.                                     */
 /*                                                                    */
 /* Offsets (each int member is 4 bytes. The octets are single bytes): */
@@ -167,9 +167,9 @@ static int write_file(const char *path, const unsigned char *buf, size_t len)
  *
  * The token has to be complete. Digits, and nothing but digits. A leading
  * sign, trailing text, an empty token, and a value above limit are all
- * refused. strtoul accepts "12abc" and hands back 12, which is how a typo
- * becomes a silently different header. The limit is checked after every
- * digit, so the running value cannot overflow before the check.
+ * refused. strtoul accepts "12abc" and returns 12, which is how a typo
+ * becomes a silently different header. The loop checks the limit after
+ * every digit, so the running value cannot overflow before the check.
  */
 static int parse_u32(const char *s, unsigned long limit, unsigned int *out)
 {
@@ -189,9 +189,9 @@ static int parse_u32(const char *s, unsigned long limit, unsigned int *out)
 /*
  * need_number - parse a numeric option value or stop with a message.
  *
- * Every numeric option is bounded by the range its field may hold, so a
- * value outside the range is refused here. The ranges are listed in the
- * usage text and in the manual's field table.
+ * The range of its field bounds every numeric option. This function
+ * refuses a value outside the range. The usage text and the manual's field
+ * table list the ranges.
  */
 static unsigned int need_number(const char *name, const char *text, unsigned long low, unsigned long limit)
 {
@@ -207,9 +207,9 @@ static unsigned int need_number(const char *name, const char *text, unsigned lon
  * parse_octets - read a dotted-quad address into four bytes.
  *
  * Four decimal numbers separated by dots, each from 0 to 255, and nothing
- * after the fourth. The whole token must be consumed. sscanf alone would
+ * after the fourth. The parser must consume the whole token. sscanf alone would
  * accept "10.0.0.junk" and "10.0.0.1.2", because it stops after the fourth
- * conversion and never looks at the rest.
+ * conversion and never reads the rest.
  */
 static int parse_octets(const char *s, unsigned char *out)
 {
@@ -233,8 +233,8 @@ static int parse_octets(const char *s, unsigned char *out)
     return *p == '\0';
 }
 
-/* The options that carry a value, so a missing value is named instead of
- * falling through to the generic usage message. */
+/* The options that carry a value, so the message names the option that
+ * lacks a value instead of printing the generic usage text. */
 static const char *const value_options[] = {
     "-o", "--ttl", "--proto", "--len", "--id", "--dscp", "--ecn",
     "--frag", "--flags", "--src", "--dst", NULL
@@ -262,7 +262,7 @@ static void usage(void)
         "  --dscp 0-63   --ecn 0-3       --frag 0-8191   --flags 0-3\n"
         "\n"
         "  --len defaults to 20, the header alone. --flags is DF (2) plus\n"
-        "  MF (1). The reserved flag bit stays zero, so 4 to 7 are refused.\n");
+        "  MF (1). The reserved flag bit stays zero. renpkt refuses 4 to 7.\n");
     exit(2);
 }
 

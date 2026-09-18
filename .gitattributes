@@ -1,5 +1,5 @@
 # The laboratory contract runs these under bash on every platform, and make
-# check compares output byte for byte, so everything text stays LF. The .bin
+# check compares output byte for byte, so every text file stays LF. The .bin
 # headers must never be text-normalized: a 20-byte IPv4 header can contain
 # bytes git would mangle.
 *.asm    text eol=lf

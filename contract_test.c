@@ -5,7 +5,7 @@
  * time. That catches a wrong decode. It cannot see an encode path that
  * loses a field, because nothing prints the encoded bytes. It cannot see a
  * routine that leaves a callee-saved register changed, because the driver
- * never looks at one. It cannot see a checksum that folds the carry once
+ * never reads one. It cannot see a checksum that folds the carry once
  * when the sum needs it twice, because no sample is large enough.
  *
  * This program makes three checks:
@@ -17,15 +17,15 @@
  *   2. Checksum vector. A crafted header whose word sum is 0x8FFFF needs
  *      the end-around carry folded twice. The routine must return 0xFFF7.
  *      A routine that folds once returns 0xFFF8.
- *   3. Register discipline. Each routine is called with sentinel values in
- *      ebx, esi, and edi. All three must come back unchanged, ebp must
- *      come back unchanged, and the stack pointer must be back where the
+ *   3. Register discipline. The wrapper calls each routine with sentinel
+ *      values in ebx, esi, and edi. All three must return unchanged. ebp
+ *      must return unchanged. The stack pointer must be back where the
  *      call left it. That is the cdecl contract, all five parts of it.
  *
- * It exits 0 when every check passes and 1 otherwise. This file is
- * provided, along with contract_regs.asm, which makes check 3 possible.
- * Do not modify either one. The grader compares your fork against the
- * starter, so an edit shows up as a diff in the open.
+ * It exits 0 when every check passes and 1 otherwise. The starter provides
+ * this file and contract_regs.asm, which makes check 3 possible. Do not
+ * modify either one. The grader compares your fork against the starter,
+ * so an edit appears as a diff in the open.
  */
 
 #include <stdio.h>
@@ -67,7 +67,7 @@ int PRE_CDECL check_checksum_registers(unsigned char *hdr, int len) POST_CDECL;
  * The valid headers come from tests/manifest.txt. Each line of that file
  * holds a name and a class, `valid` or `invalid`. Every valid header must
  * survive a decode and an encode. The manifest is the one list run_tests.sh
- * and this program share, so a header added there is tested by both.
+ * and this program share, so both test a header added there.
  */
 #define MAX_SAMPLES 64
 #define MANIFEST "tests/manifest.txt"
@@ -146,7 +146,7 @@ static int read_file(const char *path, unsigned char *buf)
 /*
  * report_mask - print the verdict for one routine. The mask comes from
  * contract_regs.asm: bit 0 ebx, bit 1 esi, bit 2 edi, bit 3 esp, bit 4
- * ebp. Every violated obligation is named on the FAIL line.
+ * ebp. The FAIL line names every violated obligation.
  */
 static void report_mask(const char *routine, int mask)
 {

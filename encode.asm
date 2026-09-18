@@ -11,7 +11,7 @@
 ;       unsigned char *hdr        [ebp+12]
 ;       struct ipv4_fields *in    [ebp+8]
 ;
-; The struct layout is documented in driver.c:
+; driver.c documents the struct layout:
 ;
 ;   +0 version   +4 ihl    +8 dscp   +12 ecn   +16 total_length
 ;   +20 identification    +24 flags  +28 fragment_offset

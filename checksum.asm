@@ -50,8 +50,8 @@ _ip_checksum:
         ;   1. Treat the header as 16-bit big-endian words. Load each byte
         ;      pair and recombine. Never load the pair as a single 16-bit
         ;      value, which gives you the bytes reversed.
-        ;   2. Add each word to a 32-bit accumulator. Carries are kept, not
-        ;      dropped. That is what the fold below is for.
+        ;   2. Add each word to a 32-bit accumulator. Keep the carries. The
+        ;      fold below returns them to the sum.
         ;   3. While the accumulator exceeds 16 bits, add its high half to
         ;      its low half. This is the end-around carry. A large sum can
         ;      need the fold twice.

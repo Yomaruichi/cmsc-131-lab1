@@ -1,5 +1,5 @@
 ;
-; decode.asm - pull every field out of a 20-byte IPv4 header.
+; decode.asm - extract every field from a 20-byte IPv4 header.
 ;
 ; This is your starting point. It assembles and links as-is, so the build
 ; works before you write any code. Right now it stores nothing, so renpkt
@@ -54,8 +54,8 @@ _decode_header:
         ;     bits live in byte 6 and its bottom eight in byte 7. Combine
         ;     both bytes into one word first, then shift and mask.
         ;   * The flags are the top three bits of the same word.
-        ;   * The checksum field is read and stored like any other field.
-        ;     The VALID line is computed separately by ip_checksum.
+        ;   * Read and store the checksum field like any other field.
+        ;     ip_checksum computes the VALID line separately.
         ;   * src and dst are four single-byte stores each. No shifting.
         ;
         ; Nothing here reads the file or prints. This routine only fills

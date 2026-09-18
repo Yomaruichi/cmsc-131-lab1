@@ -3,13 +3,13 @@
 ;
 ; The stdout comparison cannot see whether a routine leaves a callee-saved
 ; register changed. C calls these routines and assumes that ebx, esi, edi,
-; and ebp survive, and that esp comes back where the call left it. A
+; and ebp survive, and that esp returns to where the call left it. A
 ; routine that breaks one of those promises produces failures far from the
 ; cause, in code the student did not write.
 ;
-; Each function below loads a sentinel into ebx, esi, and edi, records its
-; own ebp and the esp the callee must return with, calls the routine under
-; test, and returns a bitmask:
+; Each function below loads a sentinel into ebx, esi, and edi. It records
+; its own ebp and the esp the callee must return with. It calls the routine
+; under test and returns a bitmask:
 ;
 ;   bit 0  ebx changed
 ;   bit 1  esi changed
@@ -17,8 +17,8 @@
 ;   bit 3  esp is not where the call left it
 ;   bit 4  ebp changed
 ;
-; Zero means every one of them survived. This file is provided. Do not
-; modify it.
+; Zero means every one of them survived. The starter provides this file. Do
+; not modify it.
 ;
 ; The wrapper keeps its own ebp in memory, not on the stack. After the call
 ; it trusts no register. It compares ebp and esp against the saved copies,

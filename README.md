@@ -34,19 +34,19 @@ of them differ.
 
 The gate has two passes. The first decodes every header listed in
 `tests/manifest.txt` and compares the output with `tests/expected/`. The
-second is `contract_test`, which decodes and re-encodes every header the
-manifest marks valid, checks a checksum vector that needs the carry folded
-twice, and checks that all three routines keep `ebx`, `esi`, `edi`, and
-`ebp`, and return with `esp` where the call left it. A program can pass the
-first pass and fail the second. That failure is the usual encoder bug.
+second is `contract_test`. It decodes and re-encodes every header the
+manifest marks valid. It checks a checksum vector that needs the carry
+folded twice. It checks that all three routines keep `ebx`, `esi`, `edi`,
+and `ebp`, and return with `esp` where the call left it. A program can pass
+the first pass and fail the second. That failure is the usual encoder bug.
 
 ## Reading a First Run
 
 The assembly files ship as stubs that assemble and link as-is, so the build
-works before any code is written. Right now they do nothing useful, which
+works before you write any code. Right now they do nothing useful, which
 makes every check fail: `7 of 7 checks differ`. That red run is the correct
-starting state for a starter. The badge stays red until the routines are
-implemented.
+starting state for a starter. The badge stays red until you implement the
+routines.
 
 ## Adding a Header
 
@@ -73,16 +73,16 @@ the top bit of the field is reserved and must be zero. `--df` sets 2 and
 
 ## Documentation
 
-The three sections at the end of this file are yours. Fill in Design Notes
-and Subsystem Ownership before the Week 1 progress report. Fill in Quirks
+The three sections at the end of this file are yours. Complete Design Notes
+and Subsystem Ownership before the Week 1 progress report. Complete Quirks
 and Issues before the Week 3 progress report. Each section says what it
 needs. Leave the rest of this file as it is.
 
 ## Fixtures
 
 The provided files are fixtures. The grader compares your fork against the
-starter, so an edited `driver.c`, `Makefile`, `run_tests.sh`,
-`contract_test.c`, `contract_regs.asm`, or provided `tests/` file shows up
+starter. An edit to `driver.c`, `Makefile`, `run_tests.sh`,
+`contract_test.c`, `contract_regs.asm`, or a provided `tests/` file appears
 as a diff in the open. Your own headers and manifest lines are additions,
 not edits.
 
@@ -90,7 +90,7 @@ not edits.
 
 ## Design Notes
 
-Fill this section in before the Week 1 progress report. The syllabus asks
+Complete this section before the Week 1 progress report. The syllabus asks
 for problem analysis, a solution architecture, and an estimated timeline.
 Keep each part short. Update it when the plan changes.
 
@@ -118,7 +118,7 @@ who owns it.
 
 ## Subsystem Ownership
 
-Fill this section in before the Week 1 progress report. The manual lists
+Complete this section before the Week 1 progress report. The manual lists
 the three subsystems. Each member owns one. In a group of four, two members
 share one. The commit history must agree with this table.
 
@@ -130,7 +130,7 @@ share one. The commit history must agree with this table.
 
 ## Quirks and Issues
 
-Fill this section in before the Week 3 progress report. The syllabus asks
+Complete this section before the Week 3 progress report. The syllabus asks
 for documentation of quirks and issues with the complete implementation.
 One entry per item. State what happens, what causes it, and what the group
 did about it.

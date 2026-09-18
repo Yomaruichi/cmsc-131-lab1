@@ -65,9 +65,9 @@ CFLAGS := -m32
 
 %.o: %.c cdecl.h
 	$(CC) $(CFLAGS) -c $< -o $@
-# renpkt build rules. The platform preamble above this file (detection,
-# NASM/CC, flags, and the object rules) is shared across the laboratory
-# activities and is maintained in lab-shared/Makefile.platform.
+# renpkt build rules. Every laboratory activity shares the platform preamble
+# above this file. It lives in lab-shared/Makefile.platform. It covers
+# platform detection, NASM and CC, flags, and the object rules.
 #
 # This half names this activity's objects and targets:
 #
@@ -76,7 +76,7 @@ CFLAGS := -m32
 #   make test       alias for check
 #   make clean      delete build output
 #
-# Driver-side file I/O and formatting are C; the three routines that do the
+# Driver-side file I/O and formatting are C. The three routines that do the
 # bit work are assembly. Link them together and you have the tool.
 #
 # contract_test and contract_regs are the provided second pass. They call
