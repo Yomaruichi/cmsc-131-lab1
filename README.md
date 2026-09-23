@@ -111,7 +111,7 @@ who owns it.
 
 | Week | Goal | Owner |
 |---|---|---|
-| 1 | | |
+| 1 |  | |
 | 2 | | |
 | 3 | | |
 | 4 | Defense | |
@@ -124,9 +124,9 @@ share one. The commit history must agree with this table.
 
 | Subsystem | Owner |
 |---|---|
-| Decode path (`decode.asm`) | |
-| Encode path (`encode.asm`) | |
-| Checksum and tests (`checksum.asm`, `tests/`) | |
+| Decode path (`decode.asm`) | John Dave Valentin (Yomaruichi) |
+| Encode path (`encode.asm`) | Adrian Moser (AdrianMoser1) |
+| Checksum and tests (`checksum.asm`, `tests/`) | Ralph Ryan Escabarte (RalphREE) |
 
 ## Quirks and Issues
 

@@ -62,6 +62,20 @@ _decode_header:
         ; the struct, and driver.c does the rest.
         ;
 
+        ; in 20-byte IPV4 header
+        mov     esi, [ebp+8] 
+        mov     edi, [ebp+12]
+
+        ; decode hdr for version and IHL
+        movzx   eax, byte [esi]
+        mov     ebx, eax
+        shr     ebx, 4
+        and     eax, 0x0F
+
+        ; fill the struct
+        mov     [edi+0], ebx
+        mov     [edi+4], eax
+
         popa
         mov     eax, 0
         leave
