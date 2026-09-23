@@ -111,10 +111,10 @@ who owns it.
 
 | Week | Goal | Owner |
 |---|---|---|
-| 1 |  | |
-| 2 | | |
-| 3 | | |
-| 4 | Defense | |
+| 1 | Design notes and subsystem split in the README. `decode_header` fills version and IHL from byte 0 as the prototype. Every member can state the five cdecl obligations and trace one call with `esp`. | John Dave Valentin (prototype), all members (design notes) |
+| 2 | Decode path finished: all thirteen fields, including the 13-bit fragment offset, on `sample01`–`sample05`, with `bad01` reported invalid. `ip_checksum` finished, folding the carry until the sum fits in 16 bits. | John Dave Valentin (decode), Ralph Ryan Escabarte (checksum) |
+| 3 | Encode path finished: checksum field zeroed before computing, exact round trip with `cmp`. `make check` passes 7 of 7. Added headers (max fragment offset, double-fold carry, flag combinations) in `tests/manifest.txt`. Quirks and Issues filled in. | Adrian Moser (encode), Ralph Ryan Escabarte (tests) |
+| 4 | Defense. Every member can trace the routines they didn't write. | All members |
 
 ## Subsystem Ownership
 
