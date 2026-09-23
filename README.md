@@ -104,6 +104,51 @@ one. State the header layout in your own words.
 How the three routines split the work. Which registers each routine uses,
 and how the struct offsets in `driver.c` map to the fields.
 
+#### Checksum routine (`ip_checksum`)
+
+`unsigned short ip_checksum(unsigned char *hdr, int len)` sums the header
+as ten 16-bit big-endian words and returns the one's complement of that
+sum in `ax`. Both directions use it:
+
+- **Encode:** `encode_header` writes zero into bytes 10–11 first, then
+  calls `ip_checksum(hdr, 20)` and stores the result big-endian (high byte
+  to byte 10, low byte to byte 11).
+- **Verify:** the same routine runs over the header as stored, checksum
+  included. A valid header sums to 0xFFFF, so the routine returns 0x0000.
+  Nothing recomputes the checksum and compares it.
+
+Each word is built byte by byte (high byte shifted left 8, OR the low
+byte). The routine never loads a 16-bit word with a single `mov`, so byte
+order is never in question. It uses no `bswap`, `xchg`, or lookup table.
+
+**Register plan**
+
+| Register | Role | Saved? |
+|---|---|---|
+| `esi` | walks the header, loaded from `[ebp+8]` | callee-saved, pushed after `enter` |
+| `ecx` | bytes left, loaded from `[ebp+12]`, counts down by 2 | caller-saved, free to use |
+| `eax` | 32-bit accumulator, then the return value | caller-saved, return register |
+| `ebx` | the current word being built | callee-saved, pushed after `enter` |
+| `edx` | the low byte, then the high half during folding | caller-saved, free to use |
+
+The routine pushes `ebx` and `esi` right after `enter 0,0` and pops them
+in reverse order before `leave`. It does not use `pusha`/`popa`, because
+`popa` would overwrite the answer in `eax`. It returns with plain `ret`,
+not `ret 8`, because under cdecl the caller removes the arguments.
+
+**Why a 32-bit accumulator and a fold loop**
+
+Ten words of at most 0xFFFF sum to at most 0x9FFF6, which fits easily in
+32 bits, so no carry is lost during the loop. After the loop, the routine
+folds (`eax = (eax & 0xFFFF) + (eax >> 16)`) *while* `eax >> 16` is
+non-zero, not just once. A sum of 0x8FFFF folds to 0x10007, which still
+has a carry, and folds again to 0x0008. The complement is 0xFFF7. A single
+fold would return 0xFFF8. `contract_test` ships this vector. Masking to 16
+bits without folding would silently drop every carry.
+
+The masks get named constants (`%define LOW16 0xFFFF`) so no bare magic
+numbers appear in the loop.
+
 ### Timeline
 
 One line per week. Name the subsystem each week finishes and the member
