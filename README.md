@@ -96,13 +96,76 @@ Keep each part short. Update it when the plan changes.
 
 ### Problem analysis
 
-What the tool must read, what it must write, and which field is the hard
-one. State the header layout in your own words.
+The tool reads a fixed 20-byte IPv4 base header, decodes the thirteen supported
+fields, validates the checksum, and writes a new 20-byte header back out from a
+C sourced field struct. Several fields are packed into a single byte or straddle
+byte boundaries, and the values travel in network byte order instead of the 
+little-endian order used by x86.
+
+Header layout (20 bytes):
+
+```text
+byte 0:         Version (4 bits) - Version verification to check how to parse
+                IHL (4 bits) - Caps the length
+byte 1:         DSCP (6 bits) - traffic prioritization
+                ECN (2 bits) - marks packet if congested for  others to back off
+bytes 2-3:      Total Length (16-bit big-endian) - full packet size incl. header and payload
+bytes 4-5:      Identification (16-bit big-endian) - associates packet with IDs, packet that
+                are lost can still be retrieved if since they have the same ID
+byte 6:         Flags (3 bits) - Disable fragmentation(DF) among selected packets
+byte 7:         Fragment Offset (low 8 bits) - More fragments(MF) to reassemble despite being unordered
+byte 8:         TTL - Hop counter to check if the right amount has been forwarded by the routers
+byte 9:         Protocol - Shows what's in the payload
+bytes 10-11:    Header Checksum (16-bit big-endian) - Detects corruption in the header specifically
+bytes 12-15:    Source Address (4 octets) - Who to get packets from
+bytes 16-19:    Destination Address (4 octets) - Where to forward the packets next
+```
 
 ### Solution architecture
 
-How the three routines split the work. Which registers each routine uses,
-and how the struct offsets in `driver.c` map to the fields.
+The project is split into three assembly routines:
+
+- `decode_header`: reads the 20-byte packet buffer and extracts every field into
+  the caller's `struct ipv4_fields`. It uses `movzx`, shifts, masks, and byte-by-byte
+  recombines to read each field in the correct bit width and byte order. The
+  most delicate case is the 13-bit fragment offset, which is assembled by merging
+  bytes 6 and 7 into a 16-bit word and then masking with `0x1FFF`.
+  
+- `encode_header`: rebuilds the 20-byte header from the field struct. It writes the
+  version and IHL into byte 0, packs DSCP and ECN into byte 1, converts each
+  16-bit value to network byte order with shifts and masks, and writes the flags
+  and offset back into bytes 6-7. The checksum is left with a zero placeholder at
+  the end of the header while the checksum routine computes the final value.
+
+- `ip_checksum`: computes the IPv4 one's complement checksum over a byte array of
+  the given length. It walks the buffer as 16-bit big-endian words, adds them into
+  a 32-bit accumulator, folds the carry repeatedly until the value fits in 16 bits,
+  then takes the bitwise NOT and masks to 16 bits.
+
+The C-side struct defines the field layout the driver expects, and every field in
+`decode.asm` and `encode.asm` maps directly to those offsets. The offsets are:
+
+```text
++0   version
++4   ihl
++8   dscp
++12  ecn
++16  total_length
++20  identification
++24  flags
++28  fragment_offset
++32  ttl
++36  protocol
++40  checksum
++44  src[0] .. src[3]
++48  dst[0] .. dst[3]
+```
+
+This fixed layout gives the assembly code a simple contract: add the base address
+in `edi` or `esi`, then use the correct offset for each field. Because the struct
+has no padding and every integer member is 4 bytes, all of the offset computations
+are aligned and predictable. The address arrays are single bytes, so writing the
+source and destination octets is just a byte store at the correct index.
 
 ### Timeline
 
