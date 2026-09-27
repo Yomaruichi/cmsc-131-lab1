@@ -36,11 +36,22 @@
   section .note.GNU-stack noalloc noexec nowrite progbits
 %endif
 
+; LOW16 keeps the low half of the accumulator. HALF_SHIFT moves the high
+; half (the carries) down onto it. BYTE_SHIFT puts a word's first byte in
+; its high-order position, since the header is big-endian.
+%define LOW16       0xFFFF
+%define HALF_SHIFT  16
+%define BYTE_SHIFT  8
+%define WORD_BYTES  2
+
 segment .text
         global  _ip_checksum
 _ip_checksum:
         enter   0,0
-        pusha
+        ; Save only the callee-saved registers this routine changes. pusha
+        ; would also save eax, and its popa would overwrite the answer.
+        push    ebx
+        push    esi
 
         ;
         ; TODO: the checksum loop.
@@ -62,7 +73,38 @@ _ip_checksum:
         ; enough. Leave the answer in ax when you return.
         ;
 
-        popa
-        mov     eax, 0
+        mov     esi, [ebp+8]           ; esi = hdr, walks two bytes a step
+        mov     ecx, [ebp+12]           ; ecx = len, bytes still to sum
+        xor     eax, eax                ; eax = 32-bit accumulator
+
+sum_loop:
+        cmp     ecx, 0
+        jle     fold
+        ; Build one big-endian word byte by byte: high byte first.
+        movzx   ebx, byte [esi]
+        shl     ebx, BYTE_SHIFT
+        movzx   edx, byte [esi + 1]
+        or      ebx, edx
+        add     eax, ebx                ; carries pile up above bit 15
+        add     esi, WORD_BYTES
+        sub     ecx, WORD_BYTES
+        jmp     sum_loop
+
+fold:
+        ; End-around carry. Repeat until nothing is left above bit 15: a
+        ; sum of 0x8FFFF folds to 0x10007, which still carries once more.
+        mov     edx, eax
+        shr     edx, HALF_SHIFT         ; edx = the carries
+        jz      done
+        and     eax, LOW16
+        add     eax, edx
+        jmp     fold
+
+done:
+        not     eax                     ; one's complement of the sum
+        and     eax, LOW16              ; return only the 16-bit checksum
+
+        pop     esi
+        pop     ebx
         leave
         ret
