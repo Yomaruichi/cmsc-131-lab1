@@ -26,6 +26,26 @@
 ; Return in eax (driver.c ignores it here, so returning 0 is fine).
 ;
 
+; 4 bits to mask
+%define IHL_MASK        0x0F
+; 2 bits to mask 0000 0011
+%define ECN_MASK        0x03
+; 3 bits to mask 0000 0111
+%define FLAG_MASK       0x07
+; 13 bits to mask 0001 1111 1111 1111
+%define FRAG_MASK       0x1FFF
+; 12 bits to mask 1111 1111
+%define TTL_MASK        0xFF
+; 12 bits to mask 1111 1111
+%define PROTO_MASK      0xFF
+
+%macro combine_endian 3
+        movzx   %3, byte [%1 + %2] ; high byte
+        shl     %3, 8
+        movzx   ebx, byte [%1 + %2 + 1] ; low byte
+        or      %3, ebx
+%endmacro
+
 ; Windows C puts a leading underscore on every exported name. Linux C does
 ; not. The Makefile passes -d ELF_TYPE on Linux. This block then respells
 ; the names below to match. asm_io.inc does the same for _asm_main in the
@@ -67,14 +87,88 @@ _decode_header:
         mov     edi, [ebp+12]
 
         ; decode hdr for version and IHL
-        movzx   eax, byte [esi]
+        movzx   eax, byte [esi]         ; eax = byte 0
         mov     ebx, eax
-        shr     ebx, 4
-        and     eax, 0x0F
+        shr     ebx, 4                  ; ebx = version (high nibble)
+        and     eax, IHL_MASK               ; eax = IHL (low nibble)
 
         ; fill the struct
         mov     [edi+0], ebx
         mov     [edi+4], eax
+
+        ; byte 1 fields DSCP & ECN
+        movzx   eax, byte [esi + 1]     ; eax = byte 1
+
+        mov     ebx, eax        ; ebx = DSCP (top 6 bits)
+        shr     ebx, 2
+        mov     [edi + 8], ebx
+
+        and     eax, ECN_MASK   ; eax = ECN (bottom 2 bits)
+        mov     [edi + 12], eax
+
+        ; byte 2-3
+        combine_endian  esi, 2, eax     ; esi holds address pointer, 2 is starting byte, put in eax
+        mov     [edi + 16], eax         ; total length
+
+        ; byte 4-5
+        combine_endian  esi, 4, eax
+        mov     [edi + 20], eax         ; identification
+
+        ; byte 6 flags
+        combine_endian  esi, 6, eax
+
+        mov     ebx, eax                ; eax needed for fragment offset
+        shr     ebx, 13                 ; top 3 bits gets shifted down
+        and     ebx, FLAG_MASK
+
+        mov     [edi + 24], ebx
+
+        ; byte 6-7 fragment offset
+        and     eax, FRAG_MASK          ; mask the low 13 bits
+        mov     [edi + 28], eax
+
+        ; byte 8 TTL
+        movzx   eax, byte [esi + 8]
+        and     eax, TTL_MASK           ; mask 8 bits
+
+        mov     [edi + 32], eax
+
+        ; byte 9 protocol
+        movzx   eax, byte [esi + 9]
+        and     eax, PROTO_MASK         ; mask 8 bits
+
+        mov     [edi + 36], eax
+
+        ; byte 10-11 header-checksum
+        combine_endian  esi, 10, eax
+
+        mov     [edi + 40], eax
+
+        ; byte 12-15 source address
+        mov     al, byte [esi + 12]
+        mov     [edi + 44], al
+
+        mov     al, byte [esi + 13]
+        mov     [edi + 45], al
+
+        mov     al, byte [esi + 14]
+        mov     [edi + 46], al
+
+        mov     al, byte [esi + 15]
+        mov     [edi + 47], al
+
+        ; byte 16-19 destination address
+        mov     al, byte [esi + 16]
+        mov     [edi + 48], al
+
+        mov     al, byte [esi + 17]
+        mov     [edi + 49], al
+
+        mov     al, byte [esi + 18]
+        mov     [edi + 50], al
+
+        mov     al, byte [esi + 19]
+        mov     [edi + 51], al
 
         popa
         mov     eax, 0
