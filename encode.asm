@@ -41,6 +41,20 @@
   section .note.GNU-stack noalloc noexec nowrite progbits
 %endif
 
+; Struct offsets and header constants.
+F_DSCP      equ 8
+F_ECN       equ 12
+F_TOTLEN    equ 16
+F_ID        equ 20
+F_FLAGS     equ 24
+F_FRAG      equ 28
+F_TTL       equ 32
+F_PROTO     equ 36
+F_SRC       equ 44
+F_DST       equ 48
+IP_VER_IHL  equ 0x45            ; version 4, IHL 5(internet header length)
+IP_HDR_LEN  equ 20
+
 extern _ip_checksum
 
 segment .text
@@ -49,22 +63,61 @@ _encode_header:
         enter   0,0
         pusha
 
-        ;
-        ; TODO: build the header from the struct.
-        ;
-        ; This is the reverse of decode. Mask each field to its width,
-        ; shift it up to where it lives, or the pieces of a shared byte
-        ; together, then store the byte. The fields that do not straddle
-        ; anything are one store each.
-        ;
-        ; The checksum comes last, after every other byte is written. Write
-        ; bytes 10-11 as zero, call ip_checksum with the header and 20, and
-        ; store its result (in ax) into the field big-endian. Computing it
-        ; before the rest of the header is in place sums whatever garbage
-        ; was in the buffer. ip_checksum preserves ebx, esi, edi, and ebp,
-        ; so a pointer kept in one of those survives the call. eax, ecx, and
-        ; edx do not.
-        ;
+        mov     esi, [ebp + 8]          ; esi = struct ipv4_fields *in
+        mov     edi, [ebp + 12]         ; edi = unsigned char *hdr
+
+        ; byte 0: version 4, IHL 5
+        mov     byte [edi], IP_VER_IHL
+
+        ; byte 1: DSCP (6 bits) | ECN (2 bits)
+        mov     eax, [esi + F_DSCP]
+        and     eax, 0x3F
+        shl     eax, 2
+        mov     ecx, [esi + F_ECN]
+        and     ecx, 0x03
+        or      eax, ecx
+        mov     [edi + 1], al
+
+        ; bytes 2-3: total length, big-endian
+        mov     eax, [esi + F_TOTLEN]
+        mov     [edi + 2], ah
+        mov     [edi + 3], al
+
+        ; bytes 4-5: identification, big-endian
+        mov     eax, [esi + F_ID]
+        mov     [edi + 4], ah
+        mov     [edi + 5], al
+
+        ; bytes 6-7: flags (3 bits) << 13 | fragment offset (13 bits)
+        mov     eax, [esi + F_FLAGS]
+        and     eax, 0x07
+        shl     eax, 13
+        mov     ecx, [esi + F_FRAG]
+        and     ecx, 0x1FFF
+        or      eax, ecx
+        mov     [edi + 6], ah
+        mov     [edi + 7], al
+
+        ; bytes 8-9: TTL, protocol
+        mov     eax, [esi + F_TTL]
+        mov     [edi + 8], al
+        mov     eax, [esi + F_PROTO]
+        mov     [edi + 9], al
+
+        ; bytes 12-19: source and destination addresses, copied as-is
+        mov     eax, [esi + F_SRC]
+        mov     [edi + 12], eax
+        mov     eax, [esi + F_DST]
+        mov     [edi + 16], eax
+
+        ; checksum last: bytes 10-11 zero while summing
+        mov     word [edi + 10], 0
+        push    dword IP_HDR_LEN
+        push    edi                     ; edi = hdr, survives the call
+        call    _ip_checksum
+        add     esp, 8
+        mov     [edi + 10], ah          ; big-endian: high byte first
+        mov     [edi + 11], al
 
         popa
         mov     eax, 0
