@@ -112,8 +112,9 @@ byte 1:         DSCP (6 bits) - traffic prioritization
 bytes 2-3:      Total Length (16-bit big-endian) - full packet size incl. header and payload
 bytes 4-5:      Identification (16-bit big-endian) - associates packet with IDs, packet that
                 are lost can still be retrieved if since they have the same ID
-byte 6:         Flags (3 bits) - Disable fragmentation(DF) among selected packets
-byte 7:         Fragment Offset (low 8 bits) - More fragments(MF) to reassemble despite being unordered
+byte 6:       Flags (bits 7-5) - Dont fragment(DF) among selected packets
+                and Fragment Offset (bits 4-0) - More fragments(MF) to reassemble despite being unordered
+byte 7:         Offset's low 8 bits
 byte 8:         TTL - Hop counter to check if the right amount has been forwarded by the routers
 byte 9:         Protocol - Shows what's in the payload
 bytes 10-11:    Header Checksum (16-bit big-endian) - Detects corruption in the header specifically
