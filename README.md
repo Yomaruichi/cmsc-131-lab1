@@ -249,4 +249,6 @@ did about it.
 
 ### Quirks
 
-- 
+- If `decode_header` is given a malformed header with bit 7 of byte 6 (which is a reserved bit and `must be zero`)
+with that reserved bit set to `1`, it won't catch or flag it. Since it isn't the decoder's job to do it, it will
+still read the 3 bits of the `flag` and print the number. As the job of the decoder is to read whatever the 3 bits hold.
