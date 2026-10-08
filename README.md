@@ -253,3 +253,13 @@ did about it.
 - If `decode_header` is given a malformed header with bit 7 of byte 6 (which is a reserved bit and `must be zero`)
 with that reserved bit set to `1`, it won't catch or flag it. Since it isn't the decoder's job to do it, it will
 still read the 3 bits of the `flag` and print the number. As the job of the decoder is to read whatever the 3 bits hold.
+
+- The encoder always writes 0x45 to byte 0. It ignores the struct's version (+0) and ihl (+4), so it can only build plain 20-byte IPv4 headers with no options. Each address is copied with one 32-bit mov. This assumes src[0..3] and dst[0..3] are four contiguous bytes in network order. The loads and stores may be unaligned, which is fine on x86.
+
+- Fields are masked, never validated. An out-of-range dscp, ecn, flags or fragment_offset is silently truncated to its width. ttl and protocol keep only the low byte, and total_length and identification keep only the low 16 bits. The struct's checksum member (+40) is ignored. The checksum is always recomputed over the finished header, so a wrong value in the struct cannot reach the output.
+
+- The checksum is read from ax after ip_checksum returns, and the code relies on edi (hdr) surviving that call.
+
+- The ecn mask 0x03 in byte 1 is still a bare number.
+
+- pusha/popa saves every register, not just ebx, esi, edi and ebp. This is safe but does more work than the contract needs.
