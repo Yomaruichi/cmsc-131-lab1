@@ -34,16 +34,20 @@
 %define FLAG_MASK       0x07
 ; 13 bits to mask 0001 1111 1111 1111
 %define FRAG_MASK       0x1FFF
-; 12 bits to mask 1111 1111
+; 8 bits to mask 1111 1111
 %define TTL_MASK        0xFF
-; 12 bits to mask 1111 1111
+; 8 bits to mask 1111 1111
 %define PROTO_MASK      0xFF
+
+%define VER_SHIFT 4
+%define DSCP_SHIFT 2
+%define FLAG_SHIFT 13
 
 %macro combine_endian 3
         movzx   %3, byte [%1 + %2] ; high byte
         shl     %3, 8
         movzx   ebx, byte [%1 + %2 + 1] ; low byte
-        or      %3, ebx
+        or      %3, ebx         ; NOTE: clobbers ebx as scratch
 %endmacro
 
 ; Windows C puts a leading underscore on every exported name. Linux C does
@@ -89,8 +93,8 @@ _decode_header:
         ; decode hdr for version and IHL
         movzx   eax, byte [esi]         ; eax = byte 0
         mov     ebx, eax
-        shr     ebx, 4                  ; ebx = version (high nibble)
-        and     eax, IHL_MASK               ; eax = IHL (low nibble)
+        shr     ebx, VER_SHIFT          ; ebx = version (high nibble)
+        and     eax, IHL_MASK           ; eax = IHL (low nibble)
 
         ; fill the struct
         mov     [edi+0], ebx
@@ -100,7 +104,7 @@ _decode_header:
         movzx   eax, byte [esi + 1]     ; eax = byte 1
 
         mov     ebx, eax        ; ebx = DSCP (top 6 bits)
-        shr     ebx, 2
+        shr     ebx, DSCP_SHIFT
         mov     [edi + 8], ebx
 
         and     eax, ECN_MASK   ; eax = ECN (bottom 2 bits)
@@ -118,7 +122,7 @@ _decode_header:
         combine_endian  esi, 6, eax
 
         mov     ebx, eax                ; eax needed for fragment offset
-        shr     ebx, 13                 ; top 3 bits gets shifted down
+        shr     ebx, FLAG_SHIFT                 ; top 3 bits gets shifted down
         and     ebx, FLAG_MASK
 
         mov     [edi + 24], ebx
