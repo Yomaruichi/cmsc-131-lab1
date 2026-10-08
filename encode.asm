@@ -55,6 +55,13 @@ F_DST       equ 48
 IP_VER_IHL  equ 0x45            ; version 4, IHL 5(internet header length)
 IP_HDR_LEN  equ 20
 
+; Bit-field widths and positions inside the header bytes.
+DSCP_MASK   equ 0x3F            ; DSCP is 6 bits
+DSCP_SHIFT  equ 2               ; DSCP sits above the 2 ECN bits in byte 1
+FLAGS_MASK  equ 0x07            ; flags are 3 bits
+FLAGS_SHIFT equ 13              ; flags sit above the 13-bit fragment offset
+FRAG_MASK   equ 0x1FFF          ; fragment offset is 13 bits
+
 extern _ip_checksum
 
 segment .text
@@ -71,8 +78,8 @@ _encode_header:
 
         ; byte 1: DSCP (6 bits) | ECN (2 bits)
         mov     eax, [esi + F_DSCP]
-        and     eax, 0x3F
-        shl     eax, 2
+        and     eax, DSCP_MASK
+        shl     eax, DSCP_SHIFT
         mov     ecx, [esi + F_ECN]
         and     ecx, 0x03
         or      eax, ecx
@@ -90,10 +97,10 @@ _encode_header:
 
         ; bytes 6-7: flags (3 bits) << 13 | fragment offset (13 bits)
         mov     eax, [esi + F_FLAGS]
-        and     eax, 0x07
-        shl     eax, 13
+        and     eax, FLAGS_MASK
+        shl     eax, FLAGS_SHIFT
         mov     ecx, [esi + F_FRAG]
-        and     ecx, 0x1FFF
+        and     ecx, FRAG_MASK
         or      eax, ecx
         mov     [edi + 6], ah
         mov     [edi + 7], al
