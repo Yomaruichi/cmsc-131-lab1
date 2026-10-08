@@ -1,0 +1,14 @@
+Version:          4
+IHL:              5 (20 bytes)
+DSCP:             0
+ECN:              0
+Total Length:     28
+Identification:   777
+Flags:            1 (MF)
+Fragment Offset:  1
+TTL:              32
+Protocol:         1 (ICMP)
+Header Checksum:  0x5FD0
+Source:           10.1.2.3
+Destination:      10.3.2.1
+Checksum:         VALID
