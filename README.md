@@ -246,7 +246,13 @@ did about it.
 
 ### Known issues
 
-- 
+- `ip_checksum` assumes `len` is even. The loop consumes two bytes per
+  pass and stops when `ecx` reaches zero or below. With an odd `len`, the
+  last pass reads one byte past the end of the buffer, then `ecx` drops to
+  -1 and the loop stops. The manual defines the routine only for a
+  nonnegative even length, and every call passes 20, so we left it as is
+  rather than invent a meaning for odd lengths. A negative `len` skips the
+  loop and returns 0xFFFF.
 
 ### Quirks
 
@@ -263,3 +269,34 @@ still read the 3 bits of the `flag` and print the number. As the job of the deco
 - The ecn mask 0x03 in byte 1 is still a bare number.
 
 - pusha/popa saves every register, not just ebx, esi, edi and ebp. This is safe but does more work than the contract needs.
+
+- None of the provided samples needs a second carry fold when the checksum
+  is computed on the encode side. Each one folds once, so the round trip
+  never exercised the second fold. Only `contract_test`'s raw vector did.
+  We added `fold_twice`, which is sample01 with identification 47363. With
+  the checksum field zeroed, its sum is 0x2FFFE. That folds to 0x10000, then
+  folds again to 0x0001, giving checksum 0xFFFE. It is a valid header, so it
+  joins the round trip.
+
+- A valid header never needs a second fold during verification. The stored
+  checksum makes the folded sum 0xFFFF. Two folds would need the low and high
+  halves of the raw sum to add up to 0x1FFFE, but ten words sum to at most
+  0x9FFF6, so the high half is never above 9. A corrupted header can still
+  need two folds: `bad01` sums to 0x2FFFE, so it folds to 0x10000 and then
+  0x0001, and verifies to 0xFFFE (invalid).
+
+- Changing one field without updating the checksum makes the header invalid.
+  `bad02` is `frag_max` with the TTL lowered from 64 to 63, the change a
+  router makes on every hop, and the checksum left unchanged. Bytes 8-9 drop
+  from 0x4011 to 0x3F11, exactly 0x100, so verification returns 0x0100
+  instead of 0x0000. A router has to recompute the checksum after changing
+  the TTL, and this header shows that the decode path catches one that
+  doesn't.
+
+- The expected output for our added headers (`frag_max`, `frag_one`,
+  `ttl_one`, `fold_twice`, `bad02`) was not copied from `renpkt`. We built
+  each header byte by byte from the RFC 791 layout with a separate script,
+  which computes the checksum independently, and wrote the expected text from
+  the field values we chose. We checked the script first: it reproduced
+  `sample01` and `sample04` exactly, both the bytes and the output text.
+  Copying `renpkt`'s output would make a bug agree with itself.
