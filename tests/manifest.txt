@@ -14,3 +14,8 @@ sample03 valid
 sample04 valid
 sample05 valid
 bad01 invalid
+frag_max valid
+frag_one valid
+ttl_one valid
+fold_twice valid
+bad02 invalid
